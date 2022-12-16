@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.smhrd.mapper.BoardMapper">
+	
+	<!-- 검색 결과 가지고 오는 쿼리문 -->
+	<sql id="search">
+	<if test="type=='writer'">
+	where writer like concat('%', #{keyword}, '%')
+	</if>
+	<if test="type=='title'">
+	where title like concat('%', #{keyword}, '%')
+	</if>
+	<if test="type=='content'">
+	where content like concat('%', #{keyword}, '%')
+	</if>
+	</sql>
+	
+	<select id="getList" resultType="kr.smhrd.entity.Board" parameterType="kr.smhrd.entity.Criteria">
+		select * from tblReply
+		<include refid="search"/>
+		order by bgroup desc, bseq asc
+		limit #{pageStart} , #{perPageNum} 
+	</select>
+	
+	<select id="countBoard" resultType="int" parameterType="kr.smhrd.entity.Criteria">
+	select count(*) from tblReply <include refid="search"/>
+	</select>
+	<!-- 원글 넣는 insert문  -->
+	<insert id="insert" parameterType="kr.smhrd.entity.Board">
+		<!-- insert into tblReply(title, content, writer, memId, bgroup, bseq, blevel, bdelete)  
+		select 
+		#{title}, #{content}, #{writer}, #{memId}, IFNULL(max(bgroup)+1, 0), 0, 0, 1
+		from tblReply -->
+	<selectKey order="BEFORE" resultType="kr.smhrd.entity.Board" keyProperty="bgroup">
+	select IFNULL(max(bgroup)+1, 0) as bgroup from tblReply
+	</selectKey>
+		insert into tblReply(title, content, writer, memId, bseq, blevel, bdelete)  
+		select 
+		#{title}, #{content}, #{writer}, #{memId}, 0, 0, 1
+		from tblReply
+		
+	</insert>
+	
+	
+	<!-- 답글 넣는 insert문 (+1 시켜줄것) -->
+	
+	<insert id="insertReply" parameterType="kr.smhrd.entity.Board">
+		insert into tblReply(title, content, writer, memId, bgroup, bseq, blevel, bdelete)  
+		values
+		(#{title}, #{content}, #{writer}, #{memId}, #{bgroup}, #{bseq}, #{blevel}, 1)
+	</insert>
+	
+	
+	
+	<select id="read" resultType="kr.smhrd.entity.Board" parameterType="int">
+		select * from tblReply where idx = #{idx}
+	</select>
+	
+	<update id="delete">
+		update tblReply set bdelete = 0 where idx=#{idx}
+	</update>
+	
+	<!-- <update id="updateCount">
+		update tblReply set count = count+1 where idx = #{idx}
+	</update> -->
+	
+	<update id="update" parameterType="kr.smhrd.entity.Board">
+		update tblReply set title = #{title}, content = #{content} where idx = #{idx}
+	</update>
+	
+	
+	
+	
+</mapper>
